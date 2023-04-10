@@ -1,0 +1,126 @@
+---
+title: "Advanced.Data.Mining_Assignment-2"
+author: "Elmy Luka"
+date: "2023-04-08"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+QA1. What is the key idea behind bagging? Can bagging deal both with high variance (overfitting) and high bias (underfitting)?
+
+(ANSWER) 
+Bagging is an ensemble learning technique that involves training multiple models on random subsets of the training data and combining their predictions to obtain a final prediction. Bagging can help reduce overfitting (high variance) by introducing randomness into the training process and combining the predictions of multiple models. It can also reduce underfitting (high bias) in some cases, but it is generally more effective at reducing variance.
+
+
+QA2. Why bagging models are computationally more efficient when compared to boosting models with the same number of weak learners? 
+
+(ANSWER)
+Bagging models are computationally more efficient than boosting models with the same number of weak learners because the weak learners in bagging can be trained in parallel, whereas in boosting, each weak learner depends on the performance of the previous one, making them more sequential and therefore slower.
+
+
+QA3. James is thinking of creating an ensemble mode to predict whether a given stock will go up or down in the next week. He has trained several decision tree models but each model is not performing any better than a random model. The models are also very similar to each other. Do you think creating an ensemble model by combining these tree models can boost the performance? Discuss your answer.
+
+(ANSWER)
+Combining the decision tree models is unlikely to significantly improve predictive performance, given that each individual model is already performing no better than random models and the models are very similar to each other. In general, an ensemble model can improve performance by combining multiple models with diverse and complementary strengths and weaknesses. If the individual models are all similar and performing poorly, combining them is unlikely to result in a significant improvement.
+
+QA4. Consider the following Table that classifies some objects into two classes of edible (+) and non- edible (-), based on some characteristics such as the object color, size and shape. What would be the Information gain for splitting the dataset based on the “Size” attribute? 
+
+(ANSWER)
+Using the provided data, we calculate the parent entropy to be 0.9886.
+Small size entropy = 0.8112.
+The large size entropy is 0.9544.
+As a result of the calculation, it is possible to determine that the information gain is 0.105843.
+
+
+QA5. Why is it important that the m parameter (number of attributes available at each split) to be optimally set in random forest models? Discuss the implications of setting this parameter too small or too large. 
+
+(ANSWER)
+The m parameter in random forest models must be optimally set because it controls the level of diversity among the individual decision trees in the ensemble. If m is too small, the trees will be highly correlated, and the ensemble may overfit. If m is set too high, the trees will be more diverse, but they may also miss important data patterns. Finding an optimal value for m can thus help in balancing the trade-off between bias and variance, resulting in improved predictive performance.
+
+
+
+
+Part B
+
+This part of the assignment involves building decision tree and random forest models to answer a number of questions. We will use the Carseats dataset that is part of the ISLR package
+
+```{r}
+library(ISLR)
+library(dplyr)
+library(glmnet)
+library(caret)
+library(rpart)
+library(rpart.plot)
+```
+
+```{r}
+
+carseats_filtered <- Carseats %>% select("Sales", "Price", "Advertising","Population","Age","Income","Education")
+```
+
+QB1. Build a decision tree regression model to predict Sales based on all other attributes ("Price", "Advertising", "Population", "Age", "Income" and "Education"). Which attribute is used at the top of the tree (the root node) for splitting? Hint: you can either plot () and text() functions or use the summary() function to see the decision tree rules. 
+
+```{r}
+model_1 <- rpart(Sales~., data=carseats_filtered, method = 'anova')
+rpart.plot(model_1)
+summary(model_1)
+
+```
+
+QB2. Consider the following input:Sales=9, Price=6.54, Population=124, Advertising=0, Age=76, Income= 110, Education=10. What will be the estimated Sales for this record using the decision tree model?
+
+```{r}
+Sales <- c(9)
+Price <- c(6.54)
+Population <- c(124)
+Advertising <- c(0)
+Age <- c(76)
+Income <- c(110)
+Education <- c(10)
+
+#creating test set to run through our model and predict the sales
+
+test_data<- data.frame(Sales,Price,Population,Advertising,Age,Income,Education)
+
+predict_sales <- predict(model_1, test_data)
+predict_sales
+
+#The decision tree predicts that **9.58625** sales will occur with this given record.
+
+```
+
+QB3. Use the caret function to train a random forest (method=’rf’) for the same dataset. Use the caret default settings. By default, caret will examine the “mtry” values of 2,4, and 6. Recall that mtry is the number of attributes available for splitting at each splitting node. Which mtry value gives the best performance?
+(Make sure to set the random number generator seed to 123) 
+
+```{r}
+set.seed(123)
+
+caret_random_forest.model<- train(Sales~., data = carseats_filtered, method = 'rf')
+
+```
+
+```{r}
+summary(caret_random_forest.model)
+print(caret_random_forest.model)
+plot(caret_random_forest.model)
+
+#RMSE for mtry "2" is the lowest. As a result, the "2" mtry value yields the best performance.
+```
+QB4. Customize the search grid by checking the model’s performance for mtry values of 2, 3 and 5 using 3 repeats of 5-fold cross validation. 
+
+```{r}
+
+train_control <- trainControl(method="repeatedcv", number=5, repeats=3, search="grid")
+tune_grid <- expand.grid(.mtry=c(2,3,5))
+random_forest_gridsearch <- train(Sales~., data=carseats_filtered, method="rf", tuneGrid=tune_grid,trControl=train_control)
+print(random_forest_gridsearch)
+plot(random_forest_gridsearch)
+
+```
+We still find that **2** mtry is the preferred mtry with the lowest RMSE of **2.392446** after checking mtry at 2, 3, and 5 while using 5-fold crossvalidation with 3 repeats.
+ 
+`
+
