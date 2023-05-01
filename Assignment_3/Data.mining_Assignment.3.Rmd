@@ -1,0 +1,160 @@
+---
+title: "Assignment-3_advanced.data.mining"
+author: "Elmy Luka"
+date: "2023-04-28"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+PART-A
+
+
+**QA1.**
+What is the difference between SVM with hard margin and soft margin?
+**ANSWER**
+SVMs are supervised machine learning algorithms that are used for classification and regression tasks. The main difference between SVM with hard margin and SVM with soft margin is how they handle misclassified data points.
+SVM with a hard margin assumes that the data is linearly separable, which means that it can be divided into two classes using a straight line (or hyperplane) with no misclassifications. It seeks the hyperplane with the greatest possible margin of separation between the two classes, defined as the distance between the hyperplane and the nearest data points from each class. However, if there are misclassifications or outliers, this approach will fail because perfect separation is required.
+SVM with soft margin, on the other hand, allows for some misclassifications and outliers by inserting a slack variable that penalizes misclassified data points in the objective function. This method identifies a hyperplane that maximizes the margin while also minimizing the sum of the slack variables. The regularization parameter controls the balance between enhancing the margin and minimizing the slack variable penalty.
+In summary, SVM with hard margin is stricter and only works with data that is linearly separable, whereas SVM with soft margin is more flexible and can handle certain misclassifications and outliers.
+
+REFERENCE - https://scikit-learn.org/stable/modules/svm.html
+
+
+**QA2.**
+What is the role of the cost parameter, C, in SVM (with soft margin) classifiers?
+**ANSWER**
+In SVM with soft margin, the cost parameter, C, controls the balance between achieving a larger margin and allowing some misclassifications.
+The C parameter is a regularization parameter that determines the penalty for misclassifying data points. A smaller value of C will allow for more misclassifications, while a larger value of C will penalize misclassifications more heavily, resulting in a smaller margin and potentially overfitting the data.
+Thus, in SVM with soft margin, selecting the appropriate value of C is critical. A small C number results in a broader margin but may result in some misclassifications, whereas a large C value results in a tight margin but may reduce misclassifications. The best value of C is determined by the problem's complexity and the amount of noise in the data.
+
+REFERENCE- https://towardsdatascience.com/support-vector-machine-introduction-to-machine-learning-algorithms-934a444fca47
+
+
+**QA3.**
+Will the following perceptron be activated (2.8 is the activation threshold)
+**ANSWER**
+0.1 -> 0.8 -
+              -> 2.8 ->
+11.1 -> -0.2-
+
+This perceptron will not activate as the result is -2.14. This occurs as a result of 11.1*-0.2 = -2.22, and the result 0.08 from the top is added, which gives us -2.14. 
+
+
+**QA4.**
+What is the role of alpha, the learning rate in the delta rule? 
+**ANSWER**
+In the delta rule, which is a learning rule used in artificial neural networks, the learning rate (often denoted by alpha) determines the step size of the weight update during training. The delta rule is used to change the weights of the connections between neurons in a neural network in order to minimize the difference between predicted and actual outputs. The learning rate controls the amount by which the weights are adjusted in response to the error signal.
+A larger value of alpha will result in larger weight updates and faster convergence but may also cause overshooting and instability. A smaller value of alpha will result in smaller weight updates and slower convergence but may also help avoid overshooting and converge to a better solution. Thus, selecting an appropriate value of alpha is crucial in the delta rule to achieve efficient and stable learning.
+
+REFERENCE - http://neuralnetworksanddeeplearning.com/chap2.html
+
+
+PART-B
+
+This part of the assignment involves building SVM and neural network regression models to 
+answer a number of questions. We will use the Carseats dataset that is part of the ISLR package.
+We may also need the following packages: caret, dplyr, and glmnet 
+
+```{r}
+library(ISLR)
+library(dplyr)
+library(glmnet)
+library(caret)
+library(kernlab)
+```
+
+For this assignment, we only need the following attributes: "Sales", "Price", "Advertising", 
+"Population", "Age", "Income" and "Education". The goal of the assignment is to build models 
+to predict the sales of the carseats (“Sales” attribute) using the other attributes. 
+
+```{r}
+Carseats_Filtered <- Carseats %>% select("Sales", "Price", "Advertising","Population","Age","Income","Education") 
+```
+
+
+**QB1**
+"Build a linear SVM regression model to predict Sales based on all other attributes **("Price", "Advertising", "Population", "Age", "Income" and "Education")**. Hint: use caret train() with method set to  “svmLinear”. What is the R-squared of the model?"
+
+```{r}
+train_control <- trainControl(method = "repeatedcv", number = 10, repeats = 3)
+set.seed(12)
+
+svm_linear <- train(Sales~., data = Carseats_Filtered, method = "svmLinear",
+                    trControl=train_control,
+                    preProcess = c("center", "scale"),
+                    tuneLength = 10)
+svm_linear
+
+```
+A train control section has been added above which adds cross validation to the model. 
+**The R^2 of the model is 0.3699916**
+
+
+**QB2**
+"Customize the search grid by checking the model’s performance for C parameter of  
+0.1,.5,1 and 10 using 2 repeats of 5-fold cross validation."
+
+
+```{r}
+grid <- expand.grid(C = c(0.1,0.5,1,10))
+train_control_2 <- trainControl(method = "repeatedcv", number = 5, repeats = 2)
+
+svm_linear_grid <- train(Sales~., data = Carseats_Filtered, method = "svmLinear",
+                         trControl=train_control_2,
+                         preProcess = c("center", "scale"),
+                         tuneGrid = grid,
+                         tuneLength = 10)
+
+svm_linear_grid
+```
+
+Cross validation has been used above as instructed. 
+It has been observed that as we increase C, the change decreases and **0.5** is the best C available. 
+
+
+
+**QB3**
+"Train a neural network model to predict Sales based on all other attributes **("Price", "Advertising", "Population", "Age", "Income" and "Education")**. Hint: use caret train() with method set to “nnet”. What is the R-square of the model with the best hyper parameters (using default caret search grid) – hint: don’t forget to scale the data."
+
+```{r}
+set.seed(12)
+
+numfolds <- trainControl(method = 'LOOCV', verboseIter = FALSE)
+
+nnet_Cars <- train(Sales~., data = Carseats_Filtered, method = "nnet",
+                    preProcess = c("center", "scale"),
+                   trControl = numfolds)
+nnet_Cars
+```
+
+The model selected size = 1 and decay 1e-04 as the most optimal model using RMSE.
+The closest Rsquared is **3.198331e-01** for a model with decay 1e-01 and RMSE of 7.082396.
+ 
+ 
+**QB4**
+"Consider the following input: **Sales=9, Price=6.54, Population=124, Advertising=0, Age=76, Income= 110, Education=10** What will be the estimated Sales for this record using the above neuralnet model?"
+
+
+```{r}
+Sales <- c(9)
+Price <- c(6.54)
+Population <- c(124)
+Advertising <- c(0)
+Age <- c(76)
+Income <- c(110)
+Education <- c(10)
+
+test_data <- data.frame(Sales, Price, Population, Advertising, Age, Income, Education)
+```
+
+Prediction using the network.
+
+```{r}
+prediction_sales <- predict(nnet_Cars, test_data)
+
+prediction_sales
+```
+The model predicts that only **1** sale will occur with the given record based on the Neural Network created using the instructions provided. 
